@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - VulnWeb</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="./js/main.js" defer></script>
+  <script src="./js/register.js" defer></script>
+</head>
+<body>
+  <div id="mainLayer" style="position:absolute; width:700px; z-index:1">
+    <div id="masthead">
+      <h1 id="siteName"><a href="https://www.acunetix.com/"><img src="./images/logo.gif" width="306" height="38" border="0" alt="Acunetix website security"></a></h1>
+      <h6 id="siteInfo">TEST and Demonstration site for <a href="https://www.acunetix.com/vulnerability-scanner/">Acunetix Web Vulnerability Scanner</a></h6>
+      <div id="globalNav">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>
+        <td align="left">
+          <a href="./index.html">home</a> | <a href="./categories.html">categories</a> | <a href="./artists.html">artists</a> | <a href="./guestbook.html">guestbook</a> | <a href="./cart.html">your cart</a>
+        </td>
+        <td align="right">
+          <span id="userGreeting"><a href="./login.html">Login</a> | <a href="./register.html">Register</a></span>
+        </td>
+        </tr></table>
+      </div>
+    </div>
+    <div id="content">
+      <h1>Register</h1>
+      <form id="registerForm">
+        <div class="formField">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" required>
+        </div>
+        <div class="formField">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required>
+        </div>
+        <div class="formField">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required>
+        </div>
+        <input type="submit" value="Register">
+      </form>
+      <div id="messageBox"></div>
+    </div>
+    <div id="navBar">
+      <div id="search">
+        <form action="./search.html" method="get">
+          <label>search art</label>
+          <input name="q" id="searchFor" type="text" size="10">
+          <input type="submit" value="go">
+        </form>
+      </div>
+      <div id="sectionLinks">
+        <ul>
+          <li><a href="./categories.html">Browse categories</a></li>
+          <li><a href="./artists.html">Browse artists</a></li>
+          <li><a href="./cart.html">Your cart</a></li>
+          <li><a href="./register.html">Signup</a></li>
+          <li><a href="./guestbook.html">Our guestbook</a></li>
+        </ul>
+      </div>
+      <div class="relatedLinks">
+        <h3>Links</h3>
+        <ul>
+          <li><a href="http://www.acunetix.com">Security art</a></li>
+          <li><a href="https://www.acunetix.com/vulnerability-scanner/php-security-scanner/">PHP scanner</a></li>
+          <li><a href="https://www.acunetix.com/blog/articles/prevent-sql-injection-vulnerabilities-in-php-applications/">PHP vuln help</a></li>
+          <li><a href="http://www.eclectasy.com/Fractal-Explorer/index.html">Fractal Explorer</a></li>
+        </ul>
+      </div>
+      <div id="advert">
+        <p><strong>Flash content removed</strong> for modern compatibility.</p>
+      </div>
+    </div>
+    <div id="siteInfo">  <a href="http://www.acunetix.com">About Us</a> | <a href="./privacy.html">Privacy Policy</a> | <a href="mailto:wvs@acunetix.com">Contact Us</a> | &copy;2019</div>
+  </div>
+</body>
+</html>
