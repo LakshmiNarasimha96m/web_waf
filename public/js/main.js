@@ -1,32 +1,22 @@
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"]+/g, (match) => {
-    switch (match) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      default: return match;
-    }
-  });
-}
+/**
+ * main.js — runs on every page
+ *
+ * Pings /api/waf-ping on load so Render wakes up BEFORE the user
+ * submits any form. By the time they type and click Search/Login,
+ * Render's cold start is already done and alerts will reach the dashboard.
+ */
 
-document.addEventListener('DOMContentLoaded', () => {
+(function () {
+  // Show logged-in username in header if stored
   const username = localStorage.getItem('vulnweb.username');
-  const userGreeting = document.getElementById('userGreeting');
-
-  if (!userGreeting) {
-    return;
+  const greeting = document.getElementById('userGreeting');
+  if (username && greeting) {
+    greeting.innerHTML =
+      'Welcome, <strong>' + username + '</strong> | ' +
+      '<a href="./login.html" onclick="localStorage.removeItem(\'vulnweb.username\')">Logout</a>';
   }
 
-  if (username) {
-    userGreeting.innerHTML = `Welcome, ${escapeHtml(username)} | <a href="#" id="logoutLink">Logout</a>`;
-    const logoutLink = document.getElementById('logoutLink');
-    logoutLink?.addEventListener('click', (event) => {
-      event.preventDefault();
-      localStorage.removeItem('vulnweb.username');
-      window.location.reload();
-    });
-  } else {
-    userGreeting.innerHTML = '<a href="./login.html">Login</a> | <a href="./register.html">Register</a>';
-  }
-});
+  // ── Wake up the Render firewall in the background ──────────────────────
+  // This ping is silent — user never sees it. It just keeps Render warm.
+  fetch('/api/waf-ping').catch(() => {});
+})();
