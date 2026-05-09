@@ -13,21 +13,11 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function showWafBlock(messageBox, details) {
-  const explanation = details && details.explanation ? escHtml(details.explanation) : '';
-  const metaParts = [];
-  if (details && details.attack_type) metaParts.push('Type: ' + escHtml(details.attack_type));
-  if (details && typeof details.confidence === 'number') metaParts.push('Confidence: ' + escHtml(details.confidence));
-  const meta = metaParts.length ? `<div style="margin-top:8px;font-size:0.82rem;color:#fecaca">${metaParts.join(' · ')}</div>` : '';
-  const expl = explanation
-    ? `<div style="margin-top:10px;font-size:0.88rem;color:#fee2e2"><b>Explanation:</b> ${explanation}</div>`
-    : '';
+function showWafBlock(messageBox) {
   messageBox.innerHTML = `
     <div style="background:#1a0a0a;border:2px solid #e53e3e;border-radius:8px;padding:16px;color:#fc8181;font-family:sans-serif;margin-top:8px">
       <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px">&#x1F6A8; Your request was blocked by the security firewall.</div>
       <div style="font-size:0.88rem;color:#fca5a5">Suspicious input was detected and logged. If this was a mistake, contact the administrator.</div>
-      ${meta}
-      ${expl}
     </div>`;
 }
 
@@ -50,7 +40,7 @@ async function performSearch(query) {
 
     // ── WAF blocked (server already notified the firewall dashboard) ──────
     if (data.blocked === true) {
-      showWafBlock(messageBox, data);
+      showWafBlock(messageBox);
       return;
     }
 
