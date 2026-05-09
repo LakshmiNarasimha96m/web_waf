@@ -40,7 +40,10 @@ export default async function handler(req, res) {
   if (waf.blocked) {
     return res.status(403).json({
       blocked: true,
-      message: waf.message
+      message: waf.message,
+      explanation: waf.explanation,
+      attack_type: waf.attack_type,
+      confidence: waf.confidence,
     });
   }
 

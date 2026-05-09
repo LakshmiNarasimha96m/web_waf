@@ -18,7 +18,13 @@ export default async function handler(req, res) {
   // ── WAF check ────────────────────────────────────────────────────────────
   const waf = await checkWAF(username, 'login');
   if (waf.blocked) {
-    return res.status(403).json({ blocked: true, message: waf.message });
+    return res.status(403).json({
+      blocked: true,
+      message: waf.message,
+      explanation: waf.explanation,
+      attack_type: waf.attack_type,
+      confidence: waf.confidence,
+    });
   }
 
   const safeUsername = sanitizeInput(username);

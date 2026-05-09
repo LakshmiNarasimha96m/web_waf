@@ -43,6 +43,33 @@ function joinUrl(base, pathname) {
   return b + p;
 }
 
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseWafHtmlResult(html) {
+  const headline = html.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i)?.[1] || '';
+  const headlineText = stripHtml(headline);
+
+  const explanationBlock =
+    html.match(/<p>\s*<b>\s*Explanation:\s*<\/b>\s*<\/p>\s*<p>([\s\S]*?)<\/p>/i)?.[1] || '';
+  const explanation = stripHtml(explanationBlock);
+
+  const m = headlineText.match(/ATTACK\s*DETECTED\s*:\s*(.+?)\s*\(confidence:\s*([0-9.]+)\)/i);
+  const attackType = m?.[1]?.trim() || null;
+  const confidence = m?.[2] ? Number(m[2]) : null;
+
+  const isNormal = /NORMAL INPUT/i.test(headlineText) || html.includes('✅ NORMAL INPUT');
+  const isAttack = /ATTACK DETECTED/i.test(headlineText) || html.includes('🚨 ATTACK DETECTED');
+
+  return { isNormal, isAttack, headline: headlineText, explanation, attackType, confidence };
+}
+
 // ── Background: forward alert to Render once it wakes up ─────────────────────
 function forwardToRender(alertData) {
   // Try every 10 s, up to 5 attempts (50 s total — covers Render cold start)
@@ -131,13 +158,17 @@ export async function checkWAF(payload, source) {
       });
 
       const html = await htmlRes.text();
-      const headline = html.match(/<h3[^>]*>([^<]+)<\/h3>/i)?.[1] || '';
-      const isNormal = /NORMAL INPUT/i.test(headline) || html.includes('✅ NORMAL INPUT');
-      const isAttack = /ATTACK DETECTED/i.test(headline) || html.includes('🚨 ATTACK DETECTED');
+      const parsed = parseWafHtmlResult(html);
 
-      if (isAttack && !isNormal) {
+      if (parsed.isAttack && !parsed.isNormal) {
         console.warn('[WAF BLOCK][AI-HTML] source=' + source + ' | payload=' + str.slice(0, 120));
-        return { blocked: true, message: 'Your request was blocked by the security firewall.' };
+        return {
+          blocked: true,
+          message: 'Your request was blocked by the security firewall.',
+          explanation: parsed.explanation || undefined,
+          attack_type: parsed.attackType || undefined,
+          confidence: Number.isFinite(parsed.confidence) ? parsed.confidence : undefined,
+        };
       }
 
       return { blocked: false };
@@ -181,7 +212,13 @@ export async function checkWAF(payload, source) {
       // Also try to forward to Render dashboard in background
       forwardToRender(alert);
 
-      return { blocked: true, message: 'Your request was blocked by the security firewall.' };
+      return {
+        blocked: true,
+        message: 'Your request was blocked by the security firewall.',
+        explanation: local.reason || undefined,
+        attack_type: 'Signature Match (local fallback)',
+        confidence: 1,
+      };
     }
 
     return { blocked: false };
