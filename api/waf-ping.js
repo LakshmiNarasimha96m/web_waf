@@ -19,7 +19,8 @@ export default async function handler(req, res) {
 
     let status = 'unreachable';
     try {
-      const r = await fetch(`${WAF_URL}/health`, { signal: controller.signal });
+      // Some deployments don't expose /health; "/" still returns 200 when awake.
+      const r = await fetch(`${WAF_URL}/`, { signal: controller.signal });
       status = r.ok ? 'ok' : 'error';
     } finally {
       clearTimeout(timer);

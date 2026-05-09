@@ -21,6 +21,8 @@ import { inspectInput } from './wafRules.js';
 
 const WAF_URL = process.env.WAF_URL || 'https://firewall-o5y1.onrender.com';
 const WAF_TIMEOUT_MS = 8000; // 8 seconds
+const WAF_CHECK_PATH_JSON = process.env.WAF_CHECK_PATH_JSON || '/api/waf';
+const WAF_CHECK_PATH_HTML = process.env.WAF_CHECK_PATH_HTML || '/';
 
 // ── In-memory local alert store (Vercel lambda warm-instance scope) ──────────
 // Holds up to 200 alerts caught during Render cold-start / unreachable periods.
@@ -30,6 +32,15 @@ const MAX_LOCAL_ALERTS = 200;
 function storeLocalAlert(alert) {
   if (localAlerts.length >= MAX_LOCAL_ALERTS) localAlerts.shift();
   localAlerts.push(alert);
+}
+
+function joinUrl(base, pathname) {
+  const b = String(base || '').replace(/\/+$/, '');
+  let p = String(pathname || '');
+  if (!p.startsWith('/')) p = '/' + p;
+  // Common misconfig: base already ends with "/api" and code adds "/api/..."
+  if (b.endsWith('/api') && p.startsWith('/api/')) p = p.slice(4);
+  return b + p;
 }
 
 // ── Background: forward alert to Render once it wakes up ─────────────────────
@@ -99,7 +110,7 @@ export async function checkWAF(payload, source) {
 
     let wafRes;
     try {
-      wafRes = await fetch(`${WAF_URL}/api/waf`, {
+      wafRes = await fetch(joinUrl(WAF_URL, WAF_CHECK_PATH_JSON), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payload: str, source }),
@@ -107,6 +118,29 @@ export async function checkWAF(payload, source) {
       });
     } finally {
       clearTimeout(timer);
+    }
+
+    // Some deployments expose only an HTML form at "/" (no JSON API).
+    // If the JSON endpoint returns 404, fall back to HTML and parse the result.
+    if (wafRes.status === 404) {
+      const htmlRes = await fetch(joinUrl(WAF_URL, WAF_CHECK_PATH_HTML), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(str),
+        signal: AbortSignal.timeout(7000),
+      });
+
+      const html = await htmlRes.text();
+      const headline = html.match(/<h3[^>]*>([^<]+)<\/h3>/i)?.[1] || '';
+      const isNormal = /NORMAL INPUT/i.test(headline) || html.includes('✅ NORMAL INPUT');
+      const isAttack = /ATTACK DETECTED/i.test(headline) || html.includes('🚨 ATTACK DETECTED');
+
+      if (isAttack && !isNormal) {
+        console.warn('[WAF BLOCK][AI-HTML] source=' + source + ' | payload=' + str.slice(0, 120));
+        return { blocked: true, message: 'Your request was blocked by the security firewall.' };
+      }
+
+      return { blocked: false };
     }
 
     const data = await readJsonOrThrow(wafRes);
