@@ -161,7 +161,13 @@ export async function checkWAF(payload, source) {
       const parsed = parseWafHtmlResult(html);
 
       if (parsed.isAttack && !parsed.isNormal) {
-        console.warn('[WAF BLOCK][AI-HTML] source=' + source + ' | payload=' + str.slice(0, 120));
+        console.warn(
+          '[WAF BLOCK][AI-HTML] source=' + source +
+          ' | type=' + (parsed.attackType || 'unknown') +
+          ' | confidence=' + (Number.isFinite(parsed.confidence) ? parsed.confidence : 'unknown') +
+          (parsed.explanation ? ' | explanation=' + parsed.explanation : '') +
+          ' | payload=' + str.slice(0, 120)
+        );
         return {
           blocked: true,
           message: 'Your request was blocked by the security firewall.',
@@ -195,7 +201,11 @@ export async function checkWAF(payload, source) {
     const local = inspectInput(str);
 
     if (local.blocked) {
-      console.warn('[WAF BLOCK][LOCAL FALLBACK] source=' + source + ' | reason=' + local.reason);
+      console.warn(
+        '[WAF BLOCK][LOCAL FALLBACK] source=' + source +
+        (local.reason ? ' | reason=' + local.reason : '') +
+        ' | payload=' + str.slice(0, 120)
+      );
 
       const alert = {
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
