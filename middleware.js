@@ -82,7 +82,22 @@ export async function middleware(request) {
       }),
     });
 
-    const wafData = await wafRes.json();
+    const contentType = wafRes.headers.get('content-type') || '';
+    const raw = await wafRes.text();
+    if (!/application\/json/i.test(contentType)) {
+      const snippet = raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+      throw new Error(
+        `Non-JSON response from WAF (status=${wafRes.status}, content-type=${contentType || 'unknown'}) | first_bytes=${snippet}`
+      );
+    }
+
+    let wafData;
+    try {
+      wafData = JSON.parse(raw);
+    } catch (_) {
+      const snippet = raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+      throw new Error(`Invalid JSON from WAF (status=${wafRes.status}) | first_bytes=${snippet}`);
+    }
 
     if (wafData.block === true) {
       // Server-side log (visible in Vercel Functions logs)

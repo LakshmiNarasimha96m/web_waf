@@ -10,8 +10,6 @@
  * GET /api/waf-ping
  */
 
-import fetch from 'node-fetch';
-
 const WAF_URL = process.env.WAF_URL || 'https://firewall-o5y1.onrender.com';
 
 export default async function handler(req, res) {

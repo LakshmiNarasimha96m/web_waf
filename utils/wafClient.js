@@ -17,7 +17,6 @@
  *      can show alerts even when Render is cold.
  */
 
-import fetch from 'node-fetch';
 import { inspectInput } from './wafRules.js';
 
 const WAF_URL = process.env.WAF_URL || 'https://firewall-o5y1.onrender.com';
@@ -71,6 +70,28 @@ export async function checkWAF(payload, source) {
   const str = String(payload || '').trim();
   if (!str) return { blocked: false };
 
+  async function readJsonOrThrow(response) {
+    const contentType =
+      (response.headers && response.headers.get && response.headers.get('content-type')) || '';
+    const raw = await response.text();
+
+    // Render/proxies sometimes return HTML error pages (starts with "<!doctype" / "<html>").
+    // Avoid throwing "Unexpected token '<'" by validating content-type before parsing.
+    if (!/application\/json/i.test(contentType)) {
+      const snippet = raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+      throw new Error(
+        `Non-JSON response from WAF (status=${response.status}, content-type=${contentType || 'unknown'}) | first_bytes=${snippet}`
+      );
+    }
+
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      const snippet = raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+      throw new Error(`Invalid JSON from WAF (status=${response.status}) | first_bytes=${snippet}`);
+    }
+  }
+
   // ── PRIMARY: call the AI firewall on Render ───────────────────────────────
   try {
     const controller = new AbortController();
@@ -88,7 +109,7 @@ export async function checkWAF(payload, source) {
       clearTimeout(timer);
     }
 
-    const data = await wafRes.json();
+    const data = await readJsonOrThrow(wafRes);
 
     if (data.block === true) {
       console.warn('[WAF BLOCK][AI] source=' + source + ' | payload=' + str.slice(0, 120));
